@@ -13,6 +13,9 @@ public class PlayerPawn : Pawn {
     // Boolean for whether or not the player is on the ground
     public bool isGrounded = true;
 
+    // Game object for the players special power
+    public GameObject ability;
+
 	// Use this for initialization
 	void Start () {
         jumpsLeft = maxJumps;

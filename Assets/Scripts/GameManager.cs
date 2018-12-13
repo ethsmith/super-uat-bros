@@ -18,6 +18,8 @@ public class GameManager : MonoBehaviour {
 
     // The game object for the player
     public GameObject player;
+    // The enemy game object
+    public GameObject enemy;
     // The game object for the main camera
     public GameObject mainCamera;
 
@@ -31,27 +33,35 @@ public class GameManager : MonoBehaviour {
     // The enemy death sound effect
     public AudioClip enemyDeath;
 
+    // The list of enemy spawns
+    public List<GameObject> spawns;
+    // The locations of the enemies
+    public List<Vector3> enemyLocations;
+
     // How low you can fall before dying
     public float fallThreshold;
     // The respawn time for the player
     public int respawnTime;
     // The amount of lives left for the player
     public int livesLeft;
-
+    // The amount of enemies that can be alive at one time
+    public int maxEnemies;
+    // The amount of enemies currently alive
+    public int currentEnemies = 0;
     // Boolean for whether the player is dead
-    private bool isDead = false;
+    public bool isDead = false;
+
     // Offset of the camera and the player
     private Vector3 offset;
 
     // Use this for initialization
     void Start() {
-
         // initialize the instance variable
         instance = this;
 
         // If the play button is not null delegate the button event
         if (play != null) {
-            play.onClick.AddListener(delegate { SwitchScene("Main"); });
+            play.onClick.AddListener(delegate { SwitchScene("Game"); });
         }
 
         // If the player is not null, set the camera offset
@@ -60,18 +70,41 @@ public class GameManager : MonoBehaviour {
         }
 
         // If the scene is the main level then initialize the game
-        if (SceneManager.GetActiveScene().name == "Main") {
+        if (SceneManager.GetActiveScene().name == "Game") {
             InitGame();
         }
     }
 
     // Update is called once per frame
     void Update() {
-        if (SceneManager.GetActiveScene().name == "Main") {
+        /*
+         * If the player is dead, check if the player has zero lives, if so, go to the defeat screen
+         * If not, start the respawn process
+         */
+        if (isDead) {
+            if (livesLeft == 0) {
+                SwitchScene("Defeat");
+                return;
+            }
+
+            StartCoroutine(Respawn());
+        }
+
+        // Check if the player has fallen
+        if (SceneManager.GetActiveScene().name == "Game") {
             OnPlayerFall();
+        }
+
+        /*
+         * Spawn enemies when the game starts
+         * Right now only the max enemies can spawn and more won't respawn after they die
+         */
+        if (currentEnemies < maxEnemies) {
+            SpawnEnemies();
         }
     }
 
+    // Move the camera with the player
     void LateUpdate() {
         if (player != null) {
             mainCamera.transform.position = player.transform.position + offset;
@@ -83,11 +116,34 @@ public class GameManager : MonoBehaviour {
         if (lives != null) {
             UpdateLives(livesLeft);
         }
+
+        if (respawnPoint == new Vector3().normalized) {
+            respawnPoint = player.transform.position;
+        }
+    }
+
+    // Spawn an enemy object at a random spawn location
+    void SpawnEnemies() {
+        int index = Random.Range(0, 3);
+        Transform enemyTf = spawns[index].transform;
+
+        // If an enemy is already at that location, do not spawn another
+        if (enemyLocations.Contains(enemyTf.position)) {
+            return;
+        }
+
+        Instantiate(enemy, enemyTf.position, Quaternion.identity);
+        // Increase current enemies
+        currentEnemies++;
+        // Add the enemy location to the location list
+        enemyLocations.Add(enemyTf.position);
     }
 
     // Handle the player falling
     void OnPlayerFall() {
+        // Check if the player is not dead first
         if (!isDead) {
+            // If the player is below the fall threshold, kill the player
             if (player.transform.position.y < fallThreshold) {
                 audioSource.clip = playerDeath;
                 audioSource.Play();
@@ -96,21 +152,12 @@ public class GameManager : MonoBehaviour {
 
                 livesLeft--;
                 UpdateLives(livesLeft);
-
-                if (livesLeft == 0) {
-                    SwitchScene("Defeat");
-                    return;
-                }
-
-                player.SetActive(false);
-
-                StartCoroutine(Respawn());
             }
         }
     }
 
     // Update the text UI for lives left
-    void UpdateLives(int livesLeft) {
+    public void UpdateLives(int livesLeft) {
         if (lives != null) {
             lives.text = lives.text.Split(':')[0] + ": " + livesLeft;
         }
@@ -123,9 +170,12 @@ public class GameManager : MonoBehaviour {
 
     // Coroutine for timed respawns
     private IEnumerator Respawn() {
+        player.SetActive(false);
+
         yield return new WaitForSeconds(respawnTime);
+
         player.transform.position = respawnPoint;
-        player.SetActive(true);
         isDead = false;
+        player.SetActive(true);
     }
 }

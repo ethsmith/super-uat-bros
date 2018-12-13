@@ -55,6 +55,22 @@ public class PlayerController : Controller {
                 audioSource.clip = jump;
                 audioSource.Play();
             }
+        // Pressing left shift and e at the same time shoots a fireball to kill enemies
+        } else if (Input.GetKeyDown(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.E)) {
+            // Instatiate the ability prefab
+            GameObject ability = Instantiate(playerPawn.ability) as GameObject;
+
+            // Set the position of the fireball based on where the player is and looking
+            if (sr.flipX) {
+                ability.transform.position = pawn.transform.position + new Vector3(-1.0f, 0, 0);
+            } else {
+                ability.transform.position = pawn.transform.position + new Vector3(1.0f, 0, 0);
+            }
+
+            // If the ability has not already been destroyed destroy it after five seconds
+            if (ability != null) {
+                Destroy(ability, 5);
+            }; 
         }
 
         // Check if the player is touching the ground
