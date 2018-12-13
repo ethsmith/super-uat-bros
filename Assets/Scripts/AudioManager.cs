@@ -24,7 +24,7 @@ public class AudioManager : MonoBehaviour {
         if (currentScene.name == "Menu") {
             audioSource.clip = intro;
             audioSource.Play();
-        } else if (currentScene.name == "Main") {
+        } else if (currentScene.name == "Game") {
             audioSource.clip = levelMusic;
             audioSource.Play();
         }
